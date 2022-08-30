@@ -16,7 +16,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var persons = new[]
+var persons = new List<Person>
 {
     new Person
     {
@@ -62,7 +62,7 @@ var persons = new[]
     }
 };
 
-var availableTimes = new[]
+var availableTimes = new List<AvailableTime>
 {
     new AvailableTime
     {
@@ -84,21 +84,64 @@ var availableTimes = new[]
     }
 };
 
+var appointments = new List<Appointment>
+{
+    new Appointment
+    {
+        AppointmentId = 1,
+        DateTime = DateTime.Now.Date.AddDays(1).AddHours(9),
+        PersonId = 1
+    }
+};
+
 app.MapGet("/person", () =>
 {
     return persons;
 })
 .WithName("GetPersons");
-app.MapGet("/person{personId}", (string personId) =>
+app.MapGet("/person/{personId}", (int personId) =>
 {
     return persons.FirstOrDefault(p => p.PersonId.Equals(personId));
 })
 .WithName("GetPersonById");
+
 app.MapGet("/availability", () =>
 {
     return availableTimes;
 })
-.WithName("GetAvailableTimes");
+.WithName("GetAvailabilities");
+app.MapGet("/availability/{personId}", (int personId) =>
+{
+    return availableTimes
+        .Where(at => at.PersonId.Equals(personId));
+})
+.WithName("GetAvailabilityByPersonId");
+
+app.MapPost("/appointment", (Appointment appointment) =>
+{
+    appointments.Add(appointment);
+})
+.WithName("CreateAppointment");
+app.MapPut("/appointment/{appointmentId}", (int appointmentId, Appointment appointment) =>
+{
+    var existingAppointment = appointments
+        .FirstOrDefault(a => a.AppointmentId.Equals(appointmentId));
+    if (existingAppointment != null)
+        appointments.Remove(existingAppointment);
+    appointments.Add(appointment);
+})
+.WithName("UpdateAppointment");
+app.MapGet("/appointment", () =>
+{
+    return appointments;
+})
+.WithName("GetAppointments");
+app.MapGet("/appointment/{appointmentId}", (int appointmentId) =>
+{
+    return appointments
+        .FirstOrDefault(a => a.AppointmentId.Equals(appointmentId));
+})
+.WithName("GetAppointmentByAppointmentId");
 
 app.Run();
 
@@ -116,4 +159,11 @@ public class AvailableTime
     public int PersonId { get; set; }
     public DateTime DateTime { get; set; }
     public int Duration { get; set; }
+}
+
+public class Appointment
+{
+    public int AppointmentId { get; set; }
+    public DateTime DateTime { get; set; }
+    public int PersonId { get; set; }
 }
