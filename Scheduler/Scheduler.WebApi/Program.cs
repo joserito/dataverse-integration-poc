@@ -1,4 +1,11 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.Resource;
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+builder.Services.AddAuthorization();
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -15,6 +22,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
+
+var scopeRequiredByApi = app.Configuration["AzureAd:Scopes"];
 
 var persons = new List<Person>
 {
@@ -94,34 +105,39 @@ var appointments = new List<Appointment>
     }
 };
 
-app.MapGet("/person", () =>
+app.MapGet("/person", (HttpContext httpContext) =>
 {
     return persons;
 })
-.WithName("GetPersons");
+.WithName("GetPersons")
+.RequireAuthorization();
 app.MapGet("/person/{personId}", (int personId) =>
 {
     return persons.FirstOrDefault(p => p.PersonId.Equals(personId));
 })
-.WithName("GetPersonById");
+.WithName("GetPersonById")
+.RequireAuthorization();
 
 app.MapGet("/availability", () =>
 {
     return availableTimes;
 })
-.WithName("GetAvailabilities");
+.WithName("GetAvailabilities")
+.RequireAuthorization();
 app.MapGet("/availability/{personId}", (int personId) =>
 {
     return availableTimes
         .Where(at => at.PersonId.Equals(personId));
 })
-.WithName("GetAvailabilityByPersonId");
+.WithName("GetAvailabilityByPersonId")
+.RequireAuthorization();
 
 app.MapPost("/appointment", (Appointment appointment) =>
 {
     appointments.Add(appointment);
 })
-.WithName("CreateAppointment");
+.WithName("CreateAppointment")
+.RequireAuthorization();
 app.MapPut("/appointment/{appointmentId}", (int appointmentId, Appointment appointment) =>
 {
     var existingAppointment = appointments
@@ -130,18 +146,21 @@ app.MapPut("/appointment/{appointmentId}", (int appointmentId, Appointment appoi
         appointments.Remove(existingAppointment);
     appointments.Add(appointment);
 })
-.WithName("UpdateAppointment");
+.WithName("UpdateAppointment")
+.RequireAuthorization();
 app.MapGet("/appointment", () =>
 {
     return appointments;
 })
-.WithName("GetAppointments");
+.WithName("GetAppointments")
+.RequireAuthorization();
 app.MapGet("/appointment/{appointmentId}", (int appointmentId) =>
 {
     return appointments
         .FirstOrDefault(a => a.AppointmentId.Equals(appointmentId));
 })
-.WithName("GetAppointmentByAppointmentId");
+.WithName("GetAppointmentByAppointmentId")
+.RequireAuthorization();
 
 app.Run();
 
